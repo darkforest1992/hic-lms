@@ -387,7 +387,6 @@ export default function App() {
     });
   };
 
-  // Hàm tải các mẫu Excel (Học viên, Giảng viên, Lớp học)
   const handleDownloadTemplate = (type) => {
     if (!window.XLSX) return showToast('Thư viện Excel chưa được tải.', 'error');
     let templateData = [];
@@ -718,7 +717,7 @@ export default function App() {
                           <Upload className="w-3.5 h-3.5 mr-1.5" /> Nhập Excel
                           <input type="file" accept=".xlsx, .xls" onChange={(e) => handleExcelImport(e, 'teachers')} className="hidden" />
                         </label>
-                        <button onClick={() => handleOpenTeacherModal('add')} className="py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 transition-colors text-white text-xs font-bold rounded-xl shadow-md flex items-center"><Plus className="w-4 h-4 mr-1" /> Thêm giảng viên</button>
+                        <button onClick={() => handleOpenTeacherModal('add')} className="py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 transition-colors text-white text-xs font-bold rounded-xl shadow-md flex items-center"><Plus className="w-4 h-4 mr-1 inline" /> Thêm giảng viên</button>
                       </div>
                     )}
                   </div>
@@ -754,7 +753,7 @@ export default function App() {
                           <Upload className="w-3.5 h-3.5 mr-1.5" /> Nhập Excel
                           <input type="file" accept=".xlsx, .xls" onChange={(e) => handleExcelImport(e, 'classes')} className="hidden" />
                         </label>
-                        <button onClick={() => handleOpenClassModal('add')} className="py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 transition-colors text-white text-xs font-bold rounded-xl shadow-md flex items-center"><Plus className="w-4 h-4 mr-1" /> Thêm Lớp</button>
+                        <button onClick={() => handleOpenClassModal('add')} className="py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 transition-colors text-white text-xs font-bold rounded-xl shadow-md flex items-center"><Plus className="w-4 h-4 mr-1 inline" /> Thêm Lớp</button>
                       </div>
                     )}
                   </div>
@@ -783,12 +782,25 @@ export default function App() {
             {activeTab === 'grades' && (
               <div className="space-y-4">
                 <div className="bg-white p-5 rounded-2xl border shadow-sm space-y-4">
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-center flex-wrap gap-4">
                     <div className="flex space-x-3 items-center">
                        <span className="text-xs font-bold text-slate-500">Ngành:</span>
                        <select value={selectedMajorForGrades} disabled={hasAccess(['student'])} onChange={(e) => setSelectedMajorForGrades(e.target.value)} className="bg-slate-50 border text-xs font-bold px-3 py-2 rounded-xl focus:outline-none">
                           {INITIAL_COURSES.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                        </select>
+                       
+                       {!hasAccess(['student']) && (
+                         <div className="relative ml-2">
+                           <Search className="absolute left-3 top-2 w-4 h-4 text-slate-400" />
+                           <input 
+                             type="text" 
+                             value={gradeSearchText} 
+                             onChange={(e) => setGradeSearchText(e.target.value)} 
+                             className="w-48 pl-9 pr-4 py-2 border rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500" 
+                             placeholder="Tìm HV (Tên, Mã)..." 
+                           />
+                         </div>
+                       )}
                     </div>
                     {!hasAccess(['student']) && (
                       <div className="flex gap-2">
@@ -829,9 +841,17 @@ export default function App() {
                               <td className="p-2 font-bold sticky left-0 bg-white border-r">{st.id}</td><td className="p-2 sticky left-32 bg-white border-r font-semibold truncate">{st.name}</td>
                               {subjectsOfSelectedMajorForGrades.map(sub => {
                                 const grade = grades.find(g => g.studentId === st.id && g.subjectId === sub.id);
+                                const isBelowAverage = grade && grade.score !== '' && parseFloat(grade.score) < 4.0;
                                 return (
                                   <td key={sub.id} className="p-1 border-r text-center">
-                                    <input type="number" disabled={!hasAccess(['admin', 'staff', 'teacher'])} value={grade ? grade.score : ''} onChange={(e) => handleUpdateGradeDirectly(st.id, sub.id, e.target.value)} className="w-12 p-1 border rounded text-center text-xs focus:ring-1 focus:ring-indigo-500" placeholder="-" />
+                                    <input 
+                                      type="number" 
+                                      disabled={!hasAccess(['admin', 'staff', 'teacher'])} 
+                                      value={grade ? grade.score : ''} 
+                                      onChange={(e) => handleUpdateGradeDirectly(st.id, sub.id, e.target.value)} 
+                                      className={`w-12 p-1 border rounded text-center text-xs focus:ring-1 focus:ring-indigo-500 ${isBelowAverage ? 'text-rose-600 bg-rose-50 border-rose-300 font-bold' : 'bg-white'}`} 
+                                      placeholder="-" 
+                                    />
                                   </td>
                                 );
                               })}
@@ -859,12 +879,15 @@ export default function App() {
                             <tbody className="divide-y">
                               {subjectsOfSelectedMajorForGrades.map(sub => {
                                 const grade = grades.find(g => g.studentId === currentUser.studentId && g.subjectId === sub.id);
+                                const isBelowAverage = grade && grade.score !== undefined && parseFloat(grade.score) < 4.0;
                                 return (
                                   <tr key={sub.id} className="hover:bg-slate-50">
                                     <td className="py-3 font-bold">{sub.id}</td>
                                     <td className="py-3 font-medium">{sub.name}</td>
                                     <td className="py-3 text-center text-slate-600">{sub.credits}</td>
-                                    <td className="py-3 text-center font-bold text-slate-800">{grade && grade.score !== undefined ? grade.score : '-'}</td>
+                                    <td className={`py-3 text-center font-bold ${isBelowAverage ? 'text-rose-600 bg-rose-50 rounded-xl' : 'text-slate-800'}`}>
+                                      {grade && grade.score !== undefined ? grade.score : '-'}
+                                    </td>
                                   </tr>
                                 )
                               })}
