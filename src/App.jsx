@@ -3,7 +3,8 @@ import {
   Users, GraduationCap, UserCheck, Search, Plus, Edit, Trash2, 
   Lock, LogOut, User, Shield, BookOpen, CheckCircle, AlertCircle,
   Menu, X, Key, Filter, Mail, Phone, Briefcase, Calendar, Layers, 
-  Award, ClipboardList, ChevronRight, Download, Upload, Printer
+  Award, ClipboardList, ChevronRight, Download, Upload, Printer,
+  MessageCircle, Send // Icon cho Chatbot
 } from 'lucide-react';
 
 import { initializeApp } from "firebase/app";
@@ -74,6 +75,14 @@ export default function App() {
   const [accounts, setAccounts] = useState(USERS_ACCOUNTS);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
 
+  // TÍNH NĂNG CHATBOT AI
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState([
+    { sender: 'bot', text: 'Xin chào! Tôi là Trợ lý AI (Gemini). Tôi có thể hỗ trợ gì cho bạn trong hệ thống đào tạo hôm nay?' }
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const [isChatLoading, setIsChatLoading] = useState(false);
+
   // Bộ lọc
   const [studentSearch, setStudentSearch] = useState('');
   const [studentFilterStatus, setStudentFilterStatus] = useState('All');
@@ -108,17 +117,6 @@ export default function App() {
   const [subjectFormMode, setSubjectFormMode] = useState('add');
   const [currentSubjectData, setCurrentSubjectData] = useState({ id: '', name: '', credits: 3, hours: 45, major: 'Công nghệ thông tin', type: 'Môn học, mô đun chuyên môn' });
 
-  const [isGradeEditModalOpen, setIsGradeEditModalOpen] = useState(false);
-  const [studentIdForGradeEdit, setStudentIdForGradeEdit] = useState('');
-  const [tempGradeEditScores, setTempGradeEditScores] = useState({});
-
-  const [isEnrollStudentModalOpen, setIsEnrollStudentModalOpen] = useState(false);
-  const [selectedStudentToEnroll, setSelectedStudentToEnroll] = useState('');
-  
-  const [isAddScheduleModalOpen, setIsAddScheduleModalOpen] = useState(false);
-  const [newScheduleForm, setNewScheduleForm] = useState({ date: '', topic: '' });
-  const [activeScheduleIdForAttendance, setActiveScheduleIdForAttendance] = useState(null);
-
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
 
   useEffect(() => {
@@ -152,7 +150,6 @@ export default function App() {
     return () => unsubs.forEach(unsub => unsub && unsub());
   }, []);
 
-  // Tự động gán lớp học đầu tiên cho tính năng điểm danh
   useEffect(() => {
     if (classes.length > 0 && !selectedClassIdForAttendance) {
       setSelectedClassIdForAttendance(classes[0].id);
@@ -214,7 +211,7 @@ export default function App() {
       }
     });
 
-    if (totalCredits === 0) return { gpa: 0, credits: 0, label: 'Không có điểm', avg10: '0.00' };
+    if (totalCredits === 0) return { gpa: 0, credits: 0, label: 'Chưa xếp loại', avg10: '0.00' };
     const gpa = Math.round((weightedScale4Sum / totalCredits) * 100) / 100;
     const avg10 = (sum10 / count10).toFixed(2);
     
@@ -228,15 +225,6 @@ export default function App() {
   };
 
   const hasAccess = (roles) => currentUser && roles.includes(currentUser.role);
-  const getRoleLabel = (role) => {
-    switch (role) {
-      case 'admin': return { text: 'Quản trị viên', color: 'bg-rose-100 text-rose-800' };
-      case 'staff': return { text: 'Cán bộ đào tạo', color: 'bg-sky-100 text-sky-800' };
-      case 'teacher': return { text: 'Giảng viên', color: 'bg-emerald-100 text-emerald-800' };
-      case 'student': return { text: 'Học viên', color: 'bg-indigo-100 text-indigo-800' };
-      default: return { text: 'Khách', color: 'bg-slate-100 text-slate-800' };
-    }
-  };
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -245,11 +233,13 @@ export default function App() {
       setCurrentUser(user);
       setIsLoggedIn(true);
       setLoginError('');
-      setActiveTab('dashboard');
       if (user.role === 'student' && user.studentId) {
+        setActiveTab('grades');
         const stu = students.find(s => s.id === user.studentId);
         if (stu) setSelectedMajorForGrades(stu.major);
         setGradeViewMode('scoreboard');
+      } else {
+        setActiveTab('dashboard');
       }
       showToast(`Chào mừng ${user.name}!`, 'success');
     } else {
@@ -259,6 +249,31 @@ export default function App() {
 
   const handleLogout = () => {
     setIsLoggedIn(false); setCurrentUser(null); setLoginForm({username: '', password: ''});
+  };
+
+  // --- XỬ LÝ CHATBOT ---
+  const handleSendChatMessage = async (e) => {
+    e.preventDefault();
+    if (!chatInput.trim()) return;
+    
+    const newMessages = [...chatMessages, { sender: 'user', text: chatInput }];
+    setChatMessages(newMessages);
+    setChatInput('');
+    setIsChatLoading(true);
+
+    try {
+      // TODO: Thay thế bằng mã gọi API Gemini thực tế tại đây
+      // const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=YOUR_API_KEY`, { ... })
+      
+      setTimeout(() => {
+        setChatMessages([...newMessages, { sender: 'bot', text: 'Đây là tin nhắn phản hồi mẫu từ Gemini Flash 3.1. Để AI có thể trả lời thông minh dựa trên dữ liệu, vui lòng cấu hình API Key thực tế trong mã nguồn.' }]);
+        setIsChatLoading(false);
+      }, 1500);
+
+    } catch (error) {
+      setChatMessages([...newMessages, { sender: 'bot', text: 'Xin lỗi, không thể kết nối tới dịch vụ AI.' }]);
+      setIsChatLoading(false);
+    }
   };
 
   // --- CÁC HÀM XỬ LÝ MỞ FORM MODAL ---
@@ -307,7 +322,7 @@ export default function App() {
     setIsSubjectModalOpen(true);
   };
 
-  // HỌC VIÊN
+  // CÁC HÀM XỬ LÝ LƯU FIREBASE
   const handleSaveStudent = async (e) => {
     e.preventDefault();
     if (!currentStudentData.name.trim()) return showToast('Vui lòng nhập tên!', 'error');
@@ -338,7 +353,6 @@ export default function App() {
     });
   };
 
-  // GIÁO VIÊN
   const handleSaveTeacher = async (e) => {
     e.preventDefault();
     const tData = {
@@ -365,7 +379,6 @@ export default function App() {
     });
   };
 
-  // LỚP HỌC
   const handleSaveClass = async (e) => {
     e.preventDefault();
     try {
@@ -384,7 +397,6 @@ export default function App() {
     });
   };
 
-  // MÔN HỌC
   const handleSaveSubject = async (e) => {
     e.preventDefault();
     try {
@@ -465,7 +477,22 @@ export default function App() {
             });
             count++;
           });
+        } else if (type === 'grades') {
+          // Xử lý import điểm môn học
+          dataRows.forEach(row => {
+            if (!row[0] || !row[1]) return;
+            const studentId = String(row[0]).trim();
+            const subjectId = String(row[1]).trim();
+            const score = parseFloat(row[2]);
+            if (!isNaN(score) && score >= 0 && score <= 10) {
+              batch.set(doc(db, 'grades', `${studentId}_${subjectId}`), {
+                studentId, subjectId, score: Math.round(score * 10) / 10
+              });
+              count++;
+            }
+          });
         }
+        
         await batch.commit();
         showToast(`Import thành công ${count} dòng dữ liệu lên Firebase!`, 'success');
       } catch (err) { showToast('Lỗi import: ' + err.message, 'error'); }
@@ -541,16 +568,53 @@ export default function App() {
           </form>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col md:flex-row h-screen overflow-hidden">
+        <div className="flex-1 flex flex-col md:flex-row h-screen overflow-hidden relative">
+          
+          {/* CHATBOT GEMINI UI TÍCH HỢP */}
+          <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+             {isChatOpen && (
+               <div className="bg-white w-80 h-96 rounded-2xl shadow-2xl border mb-4 flex flex-col overflow-hidden">
+                 <div className="bg-indigo-600 text-white p-3 flex justify-between items-center font-bold">
+                   <div className="flex items-center"><MessageCircle className="w-4 h-4 mr-2" /> Trợ lý AI (Gemini)</div>
+                   <button onClick={() => setIsChatOpen(false)} className="hover:bg-indigo-700 p-1 rounded"><X className="w-4 h-4" /></button>
+                 </div>
+                 <div className="flex-1 p-3 overflow-y-auto bg-slate-50 space-y-3">
+                   {chatMessages.map((msg, idx) => (
+                     <div key={idx} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                       <div className={`text-xs px-3 py-2 rounded-xl max-w-[85%] ${msg.sender === 'user' ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-white border text-slate-700 rounded-bl-none shadow-sm'}`}>
+                         {msg.text}
+                       </div>
+                     </div>
+                   ))}
+                   {isChatLoading && (
+                     <div className="flex justify-start">
+                       <div className="text-xs px-3 py-2 bg-white border text-slate-500 rounded-xl rounded-bl-none shadow-sm">Đang suy nghĩ...</div>
+                     </div>
+                   )}
+                 </div>
+                 <form onSubmit={handleSendChatMessage} className="p-2 bg-white border-t flex gap-2">
+                   <input value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder="Nhập câu hỏi..." className="flex-1 border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+                   <button type="submit" disabled={isChatLoading || !chatInput.trim()} className="bg-indigo-600 text-white p-2 rounded-lg disabled:opacity-50"><Send className="w-4 h-4" /></button>
+                 </form>
+               </div>
+             )}
+             <button onClick={() => setIsChatOpen(!isChatOpen)} className="w-14 h-14 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-2xl hover:bg-indigo-700 transition transform hover:scale-105">
+               {isChatOpen ? <X className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}
+             </button>
+          </div>
+
           <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col hidden md:flex shrink-0">
             <div className="p-5 border-b border-slate-800 flex items-center space-x-3"><div className="p-2 bg-indigo-600 rounded text-white"><GraduationCap className="w-5 h-5" /></div><h1 className="font-bold text-white">HIC LMS</h1></div>
             <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-              <button onClick={() => setActiveTab('dashboard')} className={`w-full text-left flex items-center px-3 py-2 rounded-xl text-sm ${activeTab === 'dashboard' ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800'}`}><Layers className="w-4 h-4 mr-3" /> Tổng quan</button>
+              {!hasAccess(['student']) && <button onClick={() => setActiveTab('dashboard')} className={`w-full text-left flex items-center px-3 py-2 rounded-xl text-sm ${activeTab === 'dashboard' ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800'}`}><Layers className="w-4 h-4 mr-3" /> Tổng quan</button>}
               {hasAccess(['admin', 'staff']) && <button onClick={() => setActiveTab('students')} className={`w-full text-left flex items-center px-3 py-2 rounded-xl text-sm ${activeTab === 'students' ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800'}`}><Users className="w-4 h-4 mr-3" /> Học viên</button>}
               {hasAccess(['admin', 'staff']) && <button onClick={() => setActiveTab('teachers')} className={`w-full text-left flex items-center px-3 py-2 rounded-xl text-sm ${activeTab === 'teachers' ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800'}`}><UserCheck className="w-4 h-4 mr-3" /> Giảng viên</button>}
               {hasAccess(['admin', 'staff']) && <button onClick={() => setActiveTab('classes')} className={`w-full text-left flex items-center px-3 py-2 rounded-xl text-sm ${activeTab === 'classes' ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800'}`}><ClipboardList className="w-4 h-4 mr-3" /> Lớp học</button>}
+              
               <button onClick={() => setActiveTab('grades')} className={`w-full text-left flex items-center px-3 py-2 rounded-xl text-sm ${activeTab === 'grades' ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800'}`}><Award className="w-4 h-4 mr-3" /> Điểm số</button>
-              <button onClick={() => setActiveTab('schedule')} className={`w-full text-left flex items-center px-3 py-2 rounded-xl text-sm ${activeTab === 'schedule' ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800'}`}><Calendar className="w-4 h-4 mr-3" /> Lịch học</button>
+              
+              <button onClick={() => setActiveTab('schedule')} className={`w-full text-left flex items-center px-3 py-2 rounded-xl text-sm ${activeTab === 'schedule' ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800'}`}><Calendar className="w-4 h-4 mr-3" /> Lịch học & Điểm danh</button>
+              
               {hasAccess(['admin', 'staff']) && <button onClick={() => setActiveTab('curriculum')} className={`w-full text-left flex items-center px-3 py-2 rounded-xl text-sm ${activeTab === 'curriculum' ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800'}`}><BookOpen className="w-4 h-4 mr-3" /> Môn học / Mô đun</button>}
             </nav>
             <div className="p-4 border-t border-slate-800"><button onClick={handleLogout} className="w-full text-left flex items-center px-3 py-2 text-rose-400 hover:bg-slate-800 rounded-xl text-sm"><LogOut className="w-4 h-4 mr-3" /> Đăng xuất</button></div>
@@ -686,12 +750,18 @@ export default function App() {
                   <div className="flex justify-between items-center">
                     <div className="flex space-x-3 items-center">
                        <span className="text-xs font-bold text-slate-500">Ngành:</span>
-                       <select value={selectedMajorForGrades} onChange={(e) => setSelectedMajorForGrades(e.target.value)} className="bg-slate-50 border text-xs font-bold px-3 py-2 rounded-xl focus:outline-none">
+                       <select value={selectedMajorForGrades} disabled={hasAccess(['student'])} onChange={(e) => setSelectedMajorForGrades(e.target.value)} className="bg-slate-50 border text-xs font-bold px-3 py-2 rounded-xl focus:outline-none">
                           {INITIAL_COURSES.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                        </select>
                     </div>
                     {!hasAccess(['student']) && (
                       <div className="flex gap-2">
+                        {gradeViewMode === 'edit' && (
+                          <label className="px-3 py-2 bg-emerald-50 text-emerald-700 border text-xs font-bold rounded-xl flex items-center cursor-pointer">
+                            <Upload className="w-3.5 h-3.5 mr-1.5" /> Nhập Excel Điểm
+                            <input type="file" accept=".xlsx, .xls" onChange={(e) => handleExcelImport(e, 'grades')} className="hidden" />
+                          </label>
+                        )}
                         <button onClick={() => setGradeViewMode('edit')} className={`px-4 py-2 rounded-xl text-xs font-bold ${gradeViewMode === 'edit' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700'}`}>Nhập lưới</button>
                         <button onClick={() => setGradeViewMode('scoreboard')} className={`px-4 py-2 rounded-xl text-xs font-bold ${gradeViewMode === 'scoreboard' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700'}`}>Học bạ</button>
                       </div>
@@ -732,24 +802,72 @@ export default function App() {
                   </div>
                 ) : (
                   <div className="bg-white rounded-2xl border shadow-sm p-6 overflow-x-auto text-xs">
-                     <table className="w-full text-left">
-                        <thead><tr className="border-b uppercase text-slate-500"><th className="py-2">Mã HV</th><th className="py-2">Họ Tên</th><th className="py-2 text-center">Tín Chỉ (Tính GPA)</th><th className="py-2 text-center">TBC (Hệ 10)</th><th className="py-2 text-center">GPA (Hệ 4)</th><th className="py-2 text-right">Xếp loại</th></tr></thead>
-                        <tbody className="divide-y">
-                          {studentsOfSelectedMajorForGrades.map(st => {
-                            const gpaInfo = getTermGPAOfStudent(st.id, selectedMajorForGrades, grades, subjects);
-                            return (
-                              <tr key={st.id}>
-                                <td className="py-3 font-bold">{st.id}</td><td className="py-3 font-semibold">{st.name}</td>
-                                <td className="py-3 text-center">{gpaInfo.credits} tín</td><td className="py-3 text-center font-bold text-slate-700">{gpaInfo.avg10}</td>
-                                <td className="py-3 text-center font-extrabold text-indigo-600">{gpaInfo.credits > 0 ? gpaInfo.gpa.toFixed(2) : '-'}</td>
-                                <td className="py-3 text-right font-bold uppercase">{gpaInfo.credits > 0 ? gpaInfo.label : '-'}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                     </table>
+                     {hasAccess(['student']) ? (
+                        // Giao diện học bạ chi tiết cho Học sinh (Tích lũy toàn khóa)
+                        <div>
+                          <h3 className="font-bold text-lg mb-4 text-indigo-700 border-b pb-2">Bảng điểm tích lũy toàn khóa</h3>
+                          <table className="w-full text-left mb-6">
+                            <thead>
+                              <tr className="border-b uppercase text-slate-500"><th className="py-2">Mã Môn</th><th className="py-2">Tên Môn</th><th className="py-2 text-center">Tín chỉ</th><th className="py-2 text-center">Điểm (Hệ 10)</th></tr>
+                            </thead>
+                            <tbody className="divide-y">
+                              {subjectsOfSelectedMajorForGrades.map(sub => {
+                                const grade = grades.find(g => g.studentId === currentUser.studentId && g.subjectId === sub.id);
+                                return (
+                                  <tr key={sub.id} className="hover:bg-slate-50">
+                                    <td className="py-3 font-bold">{sub.id}</td>
+                                    <td className="py-3 font-medium">{sub.name}</td>
+                                    <td className="py-3 text-center text-slate-600">{sub.credits}</td>
+                                    <td className="py-3 text-center font-bold text-slate-800">{grade && grade.score !== undefined ? grade.score : '-'}</td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                          {(() => {
+                              const gpaInfo = getTermGPAOfStudent(currentUser.studentId, selectedMajorForGrades, grades, subjects);
+                              return (
+                                  <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100 flex flex-wrap justify-between font-bold text-sm text-slate-700">
+                                      <span>Tổng tín chỉ tích lũy: <span className="text-indigo-700">{gpaInfo.credits}</span></span>
+                                      <span>Trung bình (Hệ 10): <span className="text-indigo-700">{gpaInfo.avg10}</span></span>
+                                      <span>GPA (Hệ 4): <span className="text-indigo-700">{gpaInfo.gpa.toFixed(2)}</span></span>
+                                      <span>Xếp loại: <span className="text-indigo-700 uppercase">{gpaInfo.label}</span></span>
+                                  </div>
+                              )
+                          })()}
+                        </div>
+                     ) : (
+                        // Giao diện Học bạ tổng hợp cho Admin/Giáo viên
+                        <table className="w-full text-left">
+                          <thead><tr className="border-b uppercase text-slate-500"><th className="py-2">Mã HV</th><th className="py-2">Họ Tên</th><th className="py-2 text-center">Tín Chỉ (Tính GPA)</th><th className="py-2 text-center">TBC (Hệ 10)</th><th className="py-2 text-center">GPA (Hệ 4)</th><th className="py-2 text-right">Xếp loại</th></tr></thead>
+                          <tbody className="divide-y">
+                            {studentsOfSelectedMajorForGrades.map(st => {
+                              const gpaInfo = getTermGPAOfStudent(st.id, selectedMajorForGrades, grades, subjects);
+                              return (
+                                <tr key={st.id}>
+                                  <td className="py-3 font-bold">{st.id}</td><td className="py-3 font-semibold">{st.name}</td>
+                                  <td className="py-3 text-center">{gpaInfo.credits} tín</td><td className="py-3 text-center font-bold text-slate-700">{gpaInfo.avg10}</td>
+                                  <td className="py-3 text-center font-extrabold text-indigo-600">{gpaInfo.credits > 0 ? gpaInfo.gpa.toFixed(2) : '-'}</td>
+                                  <td className="py-3 text-right font-bold uppercase">{gpaInfo.credits > 0 ? gpaInfo.label : '-'}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                     )}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* TAB LỊCH HỌC VÀ ĐIỂM DANH */}
+            {activeTab === 'schedule' && (
+              <div className="flex flex-col items-center justify-center h-[60vh] bg-white rounded-2xl border shadow-sm p-6">
+                <Calendar className="w-20 h-20 text-slate-200 mb-6" />
+                <h3 className="text-2xl font-bold text-slate-700 mb-2">Nội dung này đang được cập nhật</h3>
+                <p className="text-slate-500 text-center max-w-md">
+                  Tính năng Lịch học và Điểm danh đang trong quá trình nâng cấp và hoàn thiện để mang lại trải nghiệm quản lý tốt nhất.
+                </p>
               </div>
             )}
 
@@ -800,7 +918,7 @@ export default function App() {
         </div>
       )}
 
-      {/* CÁC MODAL THÊM SỬA XÓA XUỐNG DƯỚI ĐÂY */}
+      {/* CÁC MODAL THÊM SỬA XÓA */}
       {isStudentModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
           <form onSubmit={handleSaveStudent} className="bg-white rounded-2xl w-full max-w-xl shadow-xl overflow-hidden text-xs">
