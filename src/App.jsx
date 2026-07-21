@@ -165,6 +165,11 @@ export default function App() {
   const parseYMDtoDMY = (ymd) => ymd ? ymd.split('-').reverse().join('/') : '';
   const parseDMYtoYMD = (dmy) => dmy ? dmy.split('/').reverse().join('-') : '';
 
+  const getTeacherName = (teacherId) => {
+    const teacher = teachers.find(t => t.id === teacherId);
+    return teacher ? teacher.name : teacherId;
+  };
+
   const getTermGPAOfStudent = (studentId, studentMajor, gradeList, subjectList) => {
     let totalCredits = 0;
     let weightedScale4Sum = 0;
@@ -410,6 +415,13 @@ export default function App() {
         ['LH001', 'Lớp Lập trình Web', 'Công nghệ thông tin', 'GV001', 40, 'HIC Campus', 'Học kỳ I', '2025-09-05', '2026-01-15']
       ];
       fileName = 'Mau_Nhap_Lop_Hoc.xlsx';
+    } else if (type === 'subjects') {
+      templateData = [
+        ['Mã Môn', 'Tên Môn', 'Loại', 'Tín chỉ', 'Ngành', 'Số giờ'],
+        ['MH01', 'Tiếng Anh', 'Các môn học chung', 3, 'Công nghệ thông tin', 90],
+        ['MH08', 'Lập trình cơ bản', 'Môn học, mô đun cơ sở', 2, 'Công nghệ thông tin', 60]
+      ];
+      fileName = 'Mau_Nhap_Mon_Hoc.xlsx';
     }
 
     const ws = window.XLSX.utils.aoa_to_sheet(templateData);
@@ -760,12 +772,31 @@ export default function App() {
                 </div>
                 <div className="bg-white rounded-2xl border shadow-sm overflow-x-auto">
                   <table className="w-full text-left text-xs">
-                    <thead><tr className="bg-slate-50 border-b text-slate-500"><th className="p-4">Mã lớp</th><th className="p-4">Tên lớp</th><th className="p-4">Thời gian</th><th className="p-4 text-center">Sĩ số</th><th className="p-4">Địa điểm</th><th className="p-4 text-right">Thao tác</th></tr></thead>
+                    <thead>
+                      <tr className="bg-slate-50 border-b text-slate-500">
+                        <th className="p-4">Mã lớp</th>
+                        <th className="p-4">Tên lớp / Ngành</th>
+                        <th className="p-4">GV Phụ trách</th>
+                        <th className="p-4">Thời gian</th>
+                        <th className="p-4 text-center">Sĩ số</th>
+                        <th className="p-4">Địa điểm</th>
+                        <th className="p-4 text-right">Thao tác</th>
+                      </tr>
+                    </thead>
                     <tbody className="divide-y">
                       {filteredClasses.map(cl => (
                         <tr key={cl.id} className="hover:bg-slate-50">
-                          <td className="p-4 font-bold">{cl.id}</td><td className="p-4 font-bold">{cl.name}</td>
-                          <td className="p-4">{cl.startDate} <br/> {cl.endDate}</td><td className="p-4 text-center font-bold text-indigo-600">{cl.quota}</td>
+                          <td className="p-4 font-bold">{cl.id}</td>
+                          <td className="p-4">
+                            <span className="font-bold text-slate-800">{cl.name}</span><br/>
+                            <span className="text-[10px] text-slate-500">{cl.major}</span>
+                          </td>
+                          <td className="p-4 font-semibold text-indigo-600">
+                            {getTeacherName(cl.teacherId)} <br/>
+                            <span className="text-[10px] text-slate-400">{cl.teacherId}</span>
+                          </td>
+                          <td className="p-4">{cl.startDate} <br/> {cl.endDate}</td>
+                          <td className="p-4 text-center font-bold text-indigo-600">{cl.quota}</td>
                           <td className="p-4">{cl.location}</td>
                           <td className="p-4 text-right">
                             <button onClick={() => handleOpenClassModal('edit', cl)} className="p-1 text-indigo-600 mr-2"><Edit className="w-4 h-4"/></button>
@@ -791,7 +822,7 @@ export default function App() {
                        
                        {!hasAccess(['student']) && (
                          <div className="relative ml-2">
-                           <Search className="absolute left-3 top-2 w-4 h-4 text-slate-400" />
+                           <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
                            <input 
                              type="text" 
                              value={gradeSearchText} 
@@ -949,7 +980,18 @@ export default function App() {
                     </select>
                   </div>
                   <div className="flex space-x-2">
-                    {hasAccess(['admin', 'staff']) && <button onClick={() => handleOpenSubjectModal('add')} className="py-2.5 px-4 bg-indigo-600 text-white text-xs font-bold rounded-xl"><Plus className="w-4 h-4 mr-1 inline" /> Thêm Môn</button>}
+                    {hasAccess(['admin', 'staff']) && (
+                      <div className="flex gap-2">
+                        <button onClick={() => handleDownloadTemplate('subjects')} className="px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border text-xs font-bold rounded-xl flex items-center transition-colors">
+                          <Download className="w-3.5 h-3.5 mr-1.5" /> Tải mẫu Excel
+                        </button>
+                        <label className="px-3 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border text-xs font-bold rounded-xl flex items-center cursor-pointer transition-colors">
+                          <Upload className="w-3.5 h-3.5 mr-1.5" /> Nhập Excel Môn
+                          <input type="file" accept=".xlsx, .xls" onChange={(e) => handleExcelImport(e, 'subjects')} className="hidden" />
+                        </label>
+                        <button onClick={() => handleOpenSubjectModal('add')} className="py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md flex items-center"><Plus className="w-4 h-4 mr-1 inline" /> Thêm Môn</button>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="bg-white rounded-2xl border shadow-sm overflow-x-auto text-xs">
