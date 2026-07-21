@@ -4,7 +4,7 @@ import {
   Lock, LogOut, User, Shield, BookOpen, CheckCircle, AlertCircle,
   Menu, X, Key, Filter, Mail, Phone, Briefcase, Calendar, Layers, 
   Award, ClipboardList, ChevronRight, Download, Upload, Printer,
-  MessageCircle, Send // Icon cho Chatbot
+  MessageCircle, Send
 } from 'lucide-react';
 
 import { initializeApp } from "firebase/app";
@@ -156,7 +156,6 @@ export default function App() {
     }
   }, [classes, selectedClassIdForAttendance]);
 
-  // Load thư viện SheetJS
   useEffect(() => {
     if (!window.XLSX) {
       const script = document.createElement('script');
@@ -251,7 +250,6 @@ export default function App() {
     setIsLoggedIn(false); setCurrentUser(null); setLoginForm({username: '', password: ''});
   };
 
-  // --- XỬ LÝ CHATBOT ---
   const handleSendChatMessage = async (e) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
@@ -262,9 +260,6 @@ export default function App() {
     setIsChatLoading(true);
 
     try {
-      // TODO: Thay thế bằng mã gọi API Gemini thực tế tại đây
-      // const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=YOUR_API_KEY`, { ... })
-      
       setTimeout(() => {
         setChatMessages([...newMessages, { sender: 'bot', text: 'Đây là tin nhắn phản hồi mẫu từ Gemini Flash 3.1. Để AI có thể trả lời thông minh dựa trên dữ liệu, vui lòng cấu hình API Key thực tế trong mã nguồn.' }]);
         setIsChatLoading(false);
@@ -276,7 +271,6 @@ export default function App() {
     }
   };
 
-  // --- CÁC HÀM XỬ LÝ MỞ FORM MODAL ---
   const handleOpenStudentModal = (mode, student = null) => {
     setStudentFormMode(mode);
     if (mode === 'edit' && student) {
@@ -322,7 +316,6 @@ export default function App() {
     setIsSubjectModalOpen(true);
   };
 
-  // CÁC HÀM XỬ LÝ LƯU FIREBASE
   const handleSaveStudent = async (e) => {
     e.preventDefault();
     if (!currentStudentData.name.trim()) return showToast('Vui lòng nhập tên!', 'error');
@@ -478,7 +471,6 @@ export default function App() {
             count++;
           });
         } else if (type === 'grades') {
-          // Xử lý import điểm môn học
           dataRows.forEach(row => {
             if (!row[0] || !row[1]) return;
             const studentId = String(row[0]).trim();
@@ -514,6 +506,26 @@ export default function App() {
         await setDoc(doc(db, 'grades', docId), { studentId, subjectId, score });
       } catch(e) {}
     }
+  };
+
+  const handleDownloadGradeTemplate = () => {
+    if (!window.XLSX) {
+      showToast('Thư viện Excel chưa được tải, vui lòng thử lại sau giây lát.', 'error');
+      return;
+    }
+
+    const templateData = [
+      ['Mã HV', 'Mã Môn', 'Điểm số'], 
+      ['HV001', 'MH01', 8.5],         
+      ['HV002', 'MH08', 9.0]          
+    ];
+
+    const ws = window.XLSX.utils.aoa_to_sheet(templateData);
+    const wb = window.XLSX.utils.book_new();
+    window.XLSX.utils.book_append_sheet(wb, ws, "Mau_Nhap_Diem");
+    window.XLSX.writeFile(wb, "Mau_Nhap_Diem_HIC.xlsx");
+    
+    showToast('Đã tải file mẫu thành công!', 'success');
   };
 
   const subjectsOfSelectedMajorForGrades = useMemo(() => subjects.filter(s => s.major === selectedMajorForGrades), [subjects, selectedMajorForGrades]);
@@ -570,7 +582,6 @@ export default function App() {
       ) : (
         <div className="flex-1 flex flex-col md:flex-row h-screen overflow-hidden relative">
           
-          {/* CHATBOT GEMINI UI TÍCH HỢP */}
           <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
              {isChatOpen && (
                <div className="bg-white w-80 h-96 rounded-2xl shadow-2xl border mb-4 flex flex-col overflow-hidden">
@@ -623,7 +634,6 @@ export default function App() {
           <main className="flex-1 p-6 bg-slate-50 overflow-y-auto">
             <div className="mb-6"><h2 className="text-2xl font-bold text-slate-900">{activeTab.toUpperCase()}</h2></div>
 
-            {/* TAB DASHBOARD */}
             {activeTab === 'dashboard' && (
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="bg-white p-5 rounded-2xl border shadow-sm"><p className="text-slate-500 text-xs">Học viên</p><h3 className="text-2xl font-bold">{students.length}</h3></div>
@@ -633,7 +643,6 @@ export default function App() {
               </div>
             )}
 
-            {/* TAB HỌC VIÊN */}
             {activeTab === 'students' && (
               <div className="space-y-4">
                 <div className="bg-white p-4 rounded-2xl border shadow-sm flex flex-col md:flex-row gap-4 justify-between items-center">
@@ -674,7 +683,6 @@ export default function App() {
               </div>
             )}
 
-            {/* TAB GIẢNG VIÊN */}
             {activeTab === 'teachers' && (
               <div className="space-y-4">
                 <div className="bg-white p-4 rounded-2xl border shadow-sm flex flex-col md:flex-row gap-4 justify-between items-center">
@@ -704,7 +712,6 @@ export default function App() {
               </div>
             )}
 
-            {/* TAB LỚP HỌC */}
             {activeTab === 'classes' && (
               <div className="space-y-4">
                 <div className="bg-white p-4 rounded-2xl border shadow-sm flex flex-col md:flex-row gap-4 justify-between items-center">
@@ -743,7 +750,6 @@ export default function App() {
               </div>
             )}
 
-            {/* TAB ĐIỂM SỐ */}
             {activeTab === 'grades' && (
               <div className="space-y-4">
                 <div className="bg-white p-5 rounded-2xl border shadow-sm space-y-4">
@@ -757,10 +763,15 @@ export default function App() {
                     {!hasAccess(['student']) && (
                       <div className="flex gap-2">
                         {gradeViewMode === 'edit' && (
-                          <label className="px-3 py-2 bg-emerald-50 text-emerald-700 border text-xs font-bold rounded-xl flex items-center cursor-pointer">
-                            <Upload className="w-3.5 h-3.5 mr-1.5" /> Nhập Excel Điểm
-                            <input type="file" accept=".xlsx, .xls" onChange={(e) => handleExcelImport(e, 'grades')} className="hidden" />
-                          </label>
+                          <div className="flex gap-2">
+                            <button onClick={handleDownloadGradeTemplate} className="px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border text-xs font-bold rounded-xl flex items-center transition-colors">
+                              <Download className="w-3.5 h-3.5 mr-1.5" /> Tải mẫu Excel
+                            </button>
+                            <label className="px-3 py-2 bg-emerald-50 text-emerald-700 border text-xs font-bold rounded-xl flex items-center cursor-pointer">
+                              <Upload className="w-3.5 h-3.5 mr-1.5" /> Nhập Excel Điểm
+                              <input type="file" accept=".xlsx, .xls" onChange={(e) => handleExcelImport(e, 'grades')} className="hidden" />
+                            </label>
+                          </div>
                         )}
                         <button onClick={() => setGradeViewMode('edit')} className={`px-4 py-2 rounded-xl text-xs font-bold ${gradeViewMode === 'edit' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700'}`}>Nhập lưới</button>
                         <button onClick={() => setGradeViewMode('scoreboard')} className={`px-4 py-2 rounded-xl text-xs font-bold ${gradeViewMode === 'scoreboard' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700'}`}>Học bạ</button>
@@ -803,7 +814,6 @@ export default function App() {
                 ) : (
                   <div className="bg-white rounded-2xl border shadow-sm p-6 overflow-x-auto text-xs">
                      {hasAccess(['student']) ? (
-                        // Giao diện học bạ chi tiết cho Học sinh (Tích lũy toàn khóa)
                         <div>
                           <h3 className="font-bold text-lg mb-4 text-indigo-700 border-b pb-2">Bảng điểm tích lũy toàn khóa</h3>
                           <table className="w-full text-left mb-6">
@@ -837,7 +847,6 @@ export default function App() {
                           })()}
                         </div>
                      ) : (
-                        // Giao diện Học bạ tổng hợp cho Admin/Giáo viên
                         <table className="w-full text-left">
                           <thead><tr className="border-b uppercase text-slate-500"><th className="py-2">Mã HV</th><th className="py-2">Họ Tên</th><th className="py-2 text-center">Tín Chỉ (Tính GPA)</th><th className="py-2 text-center">TBC (Hệ 10)</th><th className="py-2 text-center">GPA (Hệ 4)</th><th className="py-2 text-right">Xếp loại</th></tr></thead>
                           <tbody className="divide-y">
@@ -860,7 +869,6 @@ export default function App() {
               </div>
             )}
 
-            {/* TAB LỊCH HỌC VÀ ĐIỂM DANH */}
             {activeTab === 'schedule' && (
               <div className="flex flex-col items-center justify-center h-[60vh] bg-white rounded-2xl border shadow-sm p-6">
                 <Calendar className="w-20 h-20 text-slate-200 mb-6" />
@@ -871,7 +879,6 @@ export default function App() {
               </div>
             )}
 
-            {/* TAB CHƯƠNG TRÌNH ĐÀO TẠO (MÔN HỌC) */}
             {activeTab === 'curriculum' && (
               <div className="space-y-4">
                 <div className="bg-white p-5 rounded-2xl border shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4">
