@@ -608,7 +608,6 @@ export default function App() {
             <input required value={loginForm.username} onChange={e => setLoginForm({...loginForm, username: e.target.value})} className="w-full mb-4 px-4 py-3 border rounded-xl" placeholder="Tên đăng nhập" />
             <input type="password" required value={loginForm.password} onChange={e => setLoginForm({...loginForm, password: e.target.value})} className="w-full mb-6 px-4 py-3 border rounded-xl" placeholder="Mật khẩu" />
             <button type="submit" className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold">Đăng nhập</button>
-            <div className="mt-6 text-xs text-slate-500 text-center"><p>Dữ liệu mẫu:</p><p>admin / 123 (Quản trị)</p></div>
           </form>
         </div>
       ) : (
