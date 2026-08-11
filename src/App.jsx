@@ -38,18 +38,6 @@ const INITIAL_COURSES = [
   { id: 'KH012', name: 'Tiếng Trung Quốc' }
 ];
 
-const INITIAL_SUBJECTS = [
-  { id: 'MH01', name: 'Tiếng Anh', credits: 3, hours: 90, major: 'Công nghệ thông tin', type: 'Các môn học chung' },
-  { id: 'MH07', name: 'Kỹ năng làm việc nhóm', credits: 3, hours: 45, major: 'Công nghệ thông tin', type: 'Môn học, mô đun cơ sở' },
-  { id: 'MH08', name: 'Lập trình cơ bản', credits: 2, hours: 60, major: 'Công nghệ thông tin', type: 'Môn học, mô đun cơ sở' },
-  { id: 'MH09', name: 'Cấu trúc dữ liệu và giải thuật', credits: 4, hours: 60, major: 'Công nghệ thông tin', type: 'Môn học, mô đun cơ sở' },
-  { id: 'MH15', name: 'Mạng máy tính', credits: 3, hours: 45, major: 'Công nghệ thông tin', type: 'Môn học, mô đun chuyên môn' },
-  { id: 'MH17', name: 'Cấu trúc và bảo trì máy tính', credits: 5, hours: 75, major: 'Công nghệ thông tin', type: 'Môn học, mô đun chuyên môn' },
-  { id: 'MH20', name: 'Thiết kế trang Web', credits: 2, hours: 60, major: 'Công nghệ thông tin', type: 'Môn học, mô đun chuyên môn' },
-  { id: 'MH98', name: 'Giáo dục thể chất', credits: 2, hours: 30, major: 'Công nghệ thông tin', type: 'Môn học chung' },
-  { id: 'MH99', name: 'Giáo dục QP-AN', credits: 3, hours: 45, major: 'Công nghệ thông tin', type: 'Môn học chung' }
-];
-
 const USERS_ACCOUNTS = [
   { username: 'admin', password: '123', name: 'Superadmin-HIC (Admin)', role: 'admin', email: 'admin@tms-edu.vn' },
   { username: 'cbdt', password: '123', name: 'Nguyễn Yến Đường (Cán bộ)', role: 'staff', email: 'minh.nt@tms-edu.vn' }
@@ -91,8 +79,11 @@ export default function App() {
   const [classSearch, setClassSearch] = useState('');
 
   const [selectedMajorForGrades, setSelectedMajorForGrades] = useState('Công nghệ thông tin');
+  const [selectedClassForGrades, setSelectedClassForGrades] = useState('');
   const [gradeSearchText, setGradeSearchText] = useState('');
   const [gradeViewMode, setGradeViewMode] = useState('edit');
+  
+  const [subjectFilterMajor, setSubjectFilterMajor] = useState('Công nghệ thông tin');
 
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
   const [studentFormMode, setStudentFormMode] = useState('add');
@@ -300,7 +291,7 @@ export default function App() {
     if (mode === 'edit' && subject) {
       setCurrentSubjectData({ ...subject });
     } else {
-      setCurrentSubjectData({ id: '', name: '', credits: 3, hours: 45, major: studentFilterMajor === 'All' ? 'Công nghệ thông tin' : studentFilterMajor, type: 'Môn học, mô đun chuyên môn' });
+      setCurrentSubjectData({ id: '', name: '', credits: 3, hours: 45, major: subjectFilterMajor, type: 'Môn học, mô đun chuyên môn' });
     }
     setIsSubjectModalOpen(true);
   };
@@ -560,11 +551,26 @@ export default function App() {
     }
   };
 
+  // --- Tối ưu hóa render Điểm số bằng Lớp học ---
+  const classesOfSelectedMajorForGrades = useMemo(() => classes.filter(c => c.major === selectedMajorForGrades), [classes, selectedMajorForGrades]);
+
+  useEffect(() => {
+    if (classesOfSelectedMajorForGrades.length > 0) {
+      setSelectedClassForGrades(classesOfSelectedMajorForGrades[0].name);
+    } else {
+      setSelectedClassForGrades('');
+    }
+  }, [selectedMajorForGrades, classesOfSelectedMajorForGrades]);
+
   const subjectsOfSelectedMajorForGrades = useMemo(() => subjects.filter(s => s.major === selectedMajorForGrades), [subjects, selectedMajorForGrades]);
+  
   const studentsOfSelectedMajorForGrades = useMemo(() => students.filter(st => {
     if (currentUser?.role === 'student') return st.id === currentUser.studentId;
-    return st.major === selectedMajorForGrades && (st.id.toLowerCase().includes(gradeSearchText.toLowerCase()) || st.name.toLowerCase().includes(gradeSearchText.toLowerCase()));
-  }), [students, selectedMajorForGrades, gradeSearchText, currentUser]);
+    const matchMajor = st.major === selectedMajorForGrades;
+    const matchClass = selectedClassForGrades === 'All' || selectedClassForGrades === '' ? true : st.class === selectedClassForGrades;
+    const matchSearch = st.id.toLowerCase().includes(gradeSearchText.toLowerCase()) || st.name.toLowerCase().includes(gradeSearchText.toLowerCase()) || (st.phone && st.phone.includes(gradeSearchText));
+    return matchMajor && matchClass && matchSearch;
+  }), [students, selectedMajorForGrades, selectedClassForGrades, gradeSearchText, currentUser]);
 
   const filteredStudents = useMemo(() => students.filter(st => 
     (st.id.toLowerCase().includes(studentSearch.toLowerCase()) || st.name.toLowerCase().includes(studentSearch.toLowerCase()) || (st.phone && st.phone.includes(studentSearch))) &&
@@ -664,11 +670,8 @@ export default function App() {
           <main className="flex-1 p-6 bg-slate-50 overflow-y-auto">
             <div className="mb-6"><h2 className="text-2xl font-bold text-slate-900">{activeTab.toUpperCase()}</h2></div>
 
-            {/* DASHBOARD ĐƯỢC THIẾT KẾ LẠI CHI TIẾT */}
             {activeTab === 'dashboard' && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                
-                {/* Khối Học viên */}
                 <div className="bg-white p-6 rounded-2xl border shadow-sm">
                    <div className="flex justify-between items-center mb-5">
                       <p className="text-slate-500 font-bold uppercase tracking-wider text-xs">Học viên</p>
@@ -700,7 +703,6 @@ export default function App() {
                    </div>
                 </div>
                 
-                {/* Khối Giảng viên */}
                 <div className="bg-white p-6 rounded-2xl border shadow-sm flex flex-col">
                    <div className="flex justify-between items-center mb-5">
                       <p className="text-slate-500 font-bold uppercase tracking-wider text-xs">Giảng viên</p>
@@ -720,7 +722,6 @@ export default function App() {
                    </div>
                 </div>
 
-                {/* Khối Lớp học */}
                 <div className="bg-white p-6 rounded-2xl border shadow-sm">
                    <div className="flex justify-between items-center mb-5">
                       <p className="text-slate-500 font-bold uppercase tracking-wider text-xs">Lớp học</p>
@@ -750,7 +751,6 @@ export default function App() {
                       <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
                       <input type="text" value={studentSearch} onChange={(e) => setStudentSearch(e.target.value)} className="w-56 pl-9 pr-4 py-2 border rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="Tìm tên, mã..." />
                     </div>
-                    {/* Bổ sung bộ lọc Ngành cho Học viên */}
                     <select value={studentFilterMajor} onChange={(e) => setStudentFilterMajor(e.target.value)} className="border rounded-xl px-3 py-2 text-xs font-bold text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500 max-w-[200px] truncate">
                       <option value="All">Tất cả ngành</option>
                       {INITIAL_COURSES.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
@@ -800,7 +800,6 @@ export default function App() {
                       <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
                       <input type="text" value={teacherSearch} onChange={(e) => setTeacherSearch(e.target.value)} className="w-56 pl-9 pr-4 py-2 border rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="Tìm giảng viên..." />
                     </div>
-                    {/* Bổ sung bộ lọc Khoa cho Giảng viên */}
                     <select value={teacherFilterDept} onChange={(e) => setTeacherFilterDept(e.target.value)} className="border rounded-xl px-3 py-2 text-xs font-bold text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500 max-w-[220px] truncate">
                       <option value="All">Tất cả khoa</option>
                       <option value="Khoa Kỹ thuật - Công nghệ">Khoa Kỹ thuật - CN</option>
@@ -847,7 +846,6 @@ export default function App() {
                       <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
                       <input type="text" value={classSearch} onChange={(e) => setClassSearch(e.target.value)} className="w-56 pl-9 pr-4 py-2 border rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="Tìm lớp..." />
                     </div>
-                    {/* Bổ sung bộ lọc Ngành cho Lớp học */}
                     <select value={classFilterMajor} onChange={(e) => setClassFilterMajor(e.target.value)} className="border rounded-xl px-3 py-2 text-xs font-bold text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500 max-w-[200px] truncate">
                       <option value="All">Tất cả ngành</option>
                       {INITIAL_COURSES.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
@@ -908,39 +906,49 @@ export default function App() {
               </div>
             )}
 
-            {/* TAB ĐIỂM SỐ - GIỮ NGUYÊN */}
             {activeTab === 'grades' && (
               <div className="space-y-4">
                 <div className="bg-white p-5 rounded-2xl border shadow-sm space-y-4">
                   <div className="flex justify-between items-center flex-wrap gap-4">
-                    <div className="flex space-x-3 items-center">
+                    <div className="flex space-x-3 items-center flex-wrap gap-y-2">
                        <span className="text-xs font-bold text-slate-500">Ngành:</span>
-                       <select value={selectedMajorForGrades} disabled={hasAccess(['student'])} onChange={(e) => setSelectedMajorForGrades(e.target.value)} className="bg-slate-50 border text-xs font-bold px-3 py-2 rounded-xl focus:outline-none">
+                       <select value={selectedMajorForGrades} disabled={hasAccess(['student'])} onChange={(e) => setSelectedMajorForGrades(e.target.value)} className="bg-slate-50 border text-xs font-bold px-3 py-2 rounded-xl focus:outline-none max-w-[200px] truncate">
                           {INITIAL_COURSES.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                        </select>
                        
                        {!hasAccess(['student']) && (
-                         <div className="relative ml-2">
-                           <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
-                           <input 
-                             type="text" 
-                             value={gradeSearchText} 
-                             onChange={(e) => setGradeSearchText(e.target.value)} 
-                             className="w-48 pl-9 pr-4 py-2 border rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500" 
-                             placeholder="Tìm HV (Tên, Mã)..." 
-                           />
-                         </div>
+                         <>
+                           <span className="text-xs font-bold text-slate-500 ml-2">Lớp:</span>
+                           <select value={selectedClassForGrades} onChange={(e) => setSelectedClassForGrades(e.target.value)} className="bg-slate-50 border text-xs font-bold px-3 py-2 rounded-xl focus:outline-none max-w-[150px] truncate">
+                              {classesOfSelectedMajorForGrades.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                              <option value="All">-- Tất cả (Tải chậm) --</option>
+                           </select>
+
+                           <div className="relative ml-2">
+                             <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                             <input 
+                               type="text" 
+                               value={gradeSearchText} 
+                               onChange={(e) => setGradeSearchText(e.target.value)} 
+                               className="w-48 pl-9 pr-4 py-2 border rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500" 
+                               placeholder="Tìm HV (Tên, Mã)..." 
+                             />
+                           </div>
+                         </>
                        )}
                     </div>
                     {!hasAccess(['student']) && (
                       <div className="flex gap-2">
+                        <a href="https://drive.google.com/drive/folders/1XUFHyFsp4s93vxhELy8K103YKcwmTUx1" target="_blank" rel="noopener noreferrer" className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white border text-xs font-bold rounded-xl flex items-center transition-colors shadow-sm">
+                            <Printer className="w-3.5 h-3.5 mr-1.5" /> Bảng điểm kỳ
+                        </a>
                         {gradeViewMode === 'edit' && (
                           <div className="flex gap-2">
                             <button onClick={handleDownloadGradeTemplate} className="px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border text-xs font-bold rounded-xl flex items-center transition-colors">
-                              <Download className="w-3.5 h-3.5 mr-1.5" /> Tải mẫu Excel
+                              <Download className="w-3.5 h-3.5 mr-1.5" /> Tải mẫu
                             </button>
                             <label className="px-3 py-2 bg-emerald-50 text-emerald-700 border text-xs font-bold rounded-xl flex items-center cursor-pointer">
-                              <Upload className="w-3.5 h-3.5 mr-1.5" /> Nhập Excel Điểm
+                              <Upload className="w-3.5 h-3.5 mr-1.5" /> Nhập Excel
                               <input type="file" accept=".xlsx, .xls" onChange={(e) => handleExcelImport(e, 'grades')} className="hidden" />
                             </label>
                           </div>
@@ -955,10 +963,12 @@ export default function App() {
                   <div className="bg-white rounded-2xl border shadow-sm overflow-x-auto">
                     <table className="w-full text-left text-xs table-fixed">
                       <thead>
-                        <tr className="bg-slate-50 border-b text-slate-500 uppercase"><th className="p-3 w-32 sticky left-0 bg-slate-50 border-r">Mã Học Viên</th><th className="p-3 w-40 sticky left-32 bg-slate-50 border-r">Họ Tên</th>
-                          {subjectsOfSelectedMajorForGrades.map(sub => <th key={sub.id} className="p-3 w-20 text-center font-bold text-slate-900 border-r" title={sub.name}>{sub.id}</th>)}
+                        <tr className="bg-slate-50 border-b text-slate-500 uppercase">
+                          <th className="p-3 w-32 sticky left-0 bg-slate-50 border-r z-10">Mã HV</th>
+                          <th className="p-3 w-40 sticky left-32 bg-slate-50 border-r z-10">Họ Tên</th>
+                          {subjectsOfSelectedMajorForGrades.map((sub, index) => <th key={`${sub.major}_${sub.id}_${index}`} className="p-3 w-20 text-center font-bold text-slate-900 border-r" title={sub.name}>{sub.id}</th>)}
                           <th className="p-3 w-20 text-center font-bold text-slate-900 border-r bg-orange-50" title="Điểm Rèn Luyện (Thang 100)">Điểm RL</th>
-                          <th className="p-3 w-24 text-center bg-slate-50 sticky right-0 shadow-[-5px_0_10px_-5px_rgba(0,0,0,0.1)]">GPA</th>
+                          <th className="p-3 w-24 text-center bg-slate-50 sticky right-0 shadow-[-5px_0_10px_-5px_rgba(0,0,0,0.1)] z-10">GPA</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
@@ -968,12 +978,13 @@ export default function App() {
                           
                           return (
                             <tr key={st.id} className="hover:bg-slate-50">
-                              <td className="p-2 font-bold sticky left-0 bg-white border-r">{st.id}</td><td className="p-2 sticky left-32 bg-white border-r font-semibold truncate">{st.name}</td>
-                              {subjectsOfSelectedMajorForGrades.map(sub => {
+                              <td className="p-2 font-bold sticky left-0 bg-white border-r z-10">{st.id}</td>
+                              <td className="p-2 sticky left-32 bg-white border-r font-semibold truncate z-10">{st.name}</td>
+                              {subjectsOfSelectedMajorForGrades.map((sub, index) => {
                                 const grade = grades.find(g => g.studentId === st.id && g.subjectId === sub.id);
                                 const isBelowAverage = grade && grade.score !== '' && parseFloat(grade.score) < 4.0;
                                 return (
-                                  <td key={sub.id} className="p-1 border-r text-center">
+                                  <td key={`${sub.major}_${sub.id}_${index}`} className="p-1 border-r text-center">
                                     <input 
                                       type="number" 
                                       disabled={!hasAccess(['admin', 'staff', 'teacher'])} 
@@ -988,7 +999,7 @@ export default function App() {
                               <td className="p-1 border-r bg-orange-50 text-center">
                                 <input type="number" max="100" min="0" disabled={!hasAccess(['admin', 'staff', 'teacher'])} value={drlGrade ? drlGrade.score : ''} onChange={(e) => handleUpdateGradeDirectly(st.id, 'DRL', e.target.value)} className="w-12 p-1 border rounded text-center text-xs font-bold text-orange-700 bg-white focus:ring-1 focus:ring-orange-500" placeholder="-" />
                               </td>
-                              <td className="p-2 text-center sticky right-0 bg-white shadow-[-5px_0_10px_-5px_rgba(0,0,0,0.1)] font-bold text-indigo-700">
+                              <td className="p-2 text-center sticky right-0 bg-white shadow-[-5px_0_10px_-5px_rgba(0,0,0,0.1)] font-bold text-indigo-700 z-10">
                                 {gpaInfo.credits > 0 ? <>{gpaInfo.gpa.toFixed(2)}<br/><span className="text-[9px] text-slate-500">TBC: {gpaInfo.avg10}</span></> : '-'}
                               </td>
                             </tr>
@@ -1007,11 +1018,11 @@ export default function App() {
                               <tr className="border-b uppercase text-slate-500"><th className="py-2">Mã Môn</th><th className="py-2">Tên Môn</th><th className="py-2 text-center">Tín chỉ</th><th className="py-2 text-center">Điểm (Hệ 10)</th></tr>
                             </thead>
                             <tbody className="divide-y">
-                              {subjectsOfSelectedMajorForGrades.map(sub => {
+                              {subjectsOfSelectedMajorForGrades.map((sub, index) => {
                                 const grade = grades.find(g => g.studentId === currentUser.studentId && g.subjectId === sub.id);
                                 const isBelowAverage = grade && grade.score !== undefined && parseFloat(grade.score) < 4.0;
                                 return (
-                                  <tr key={sub.id} className="hover:bg-slate-50">
+                                  <tr key={`${sub.major}_${sub.id}_${index}`} className="hover:bg-slate-50">
                                     <td className="py-3 font-bold">{sub.id}</td>
                                     <td className="py-3 font-medium">{sub.name}</td>
                                     <td className="py-3 text-center text-slate-600">{sub.credits}</td>
@@ -1062,7 +1073,6 @@ export default function App() {
               </div>
             )}
 
-            {/* TAB LỊCH HỌC VÀ ĐIỂM DANH - GIỮ NGUYÊN */}
             {activeTab === 'schedule' && (
               <div className="flex flex-col items-center justify-center h-[60vh] bg-white rounded-2xl border shadow-sm p-6">
                 <Calendar className="w-20 h-20 text-slate-200 mb-6" />
@@ -1070,13 +1080,12 @@ export default function App() {
               </div>
             )}
 
-            {/* TAB MÔN HỌC - GIỮ NGUYÊN */}
             {activeTab === 'curriculum' && (
               <div className="space-y-4">
                 <div className="bg-white p-5 rounded-2xl border shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4">
                   <div className="flex items-center space-x-3">
                     <span className="text-xs font-bold text-slate-500 uppercase">Khung ngành:</span>
-                    <select value={studentFilterMajor} onChange={(e) => setStudentFilterMajor(e.target.value)} className="bg-slate-50 border text-xs font-bold rounded-xl px-3 py-2.5">
+                    <select value={subjectFilterMajor} onChange={(e) => setSubjectFilterMajor(e.target.value)} className="bg-slate-50 border text-xs font-bold rounded-xl px-3 py-2.5 max-w-[200px] truncate">
                       {INITIAL_COURSES.map(course => <option key={course.id} value={course.name}>{course.name}</option>)}
                     </select>
                   </div>
@@ -1084,7 +1093,7 @@ export default function App() {
                     {hasAccess(['admin', 'staff']) && (
                       <div className="flex gap-2">
                         <button onClick={() => handleDownloadTemplate('subjects')} className="px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border text-xs font-bold rounded-xl flex items-center transition-colors">
-                          <Download className="w-3.5 h-3.5 mr-1.5" /> Tải mẫu Excel
+                          <Download className="w-3.5 h-3.5 mr-1.5" /> Tải mẫu
                         </button>
                         <label className="px-3 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border text-xs font-bold rounded-xl flex items-center cursor-pointer transition-colors">
                           <Upload className="w-3.5 h-3.5 mr-1.5" /> Nhập Excel Môn
@@ -1099,8 +1108,8 @@ export default function App() {
                   <table className="w-full text-left">
                     <thead><tr className="bg-slate-50 border-b"><th className="p-4">Mã Môn</th><th className="p-4">Tên môn học</th><th className="p-4">Loại</th><th className="p-4 text-center">Tín chỉ / Giờ</th><th className="p-4 text-right">Sửa/Xóa</th></tr></thead>
                     <tbody className="divide-y">
-                      {subjects.filter(s => s.major === studentFilterMajor || studentFilterMajor === 'All').map(sub => (
-                        <tr key={sub.id} className="hover:bg-slate-50">
+                      {subjects.filter(s => s.major === subjectFilterMajor).map((sub, index) => (
+                        <tr key={`${sub.major}_${sub.id}_${index}`} className="hover:bg-slate-50">
                           <td className="p-4 font-bold">{sub.id}</td><td className="p-4 font-bold">{sub.name}</td><td className="p-4 text-slate-500">{sub.type}</td>
                           <td className="p-4 text-center text-indigo-600 font-bold">{sub.credits} Tín / {sub.hours}h</td>
                           <td className="p-4 text-right">
