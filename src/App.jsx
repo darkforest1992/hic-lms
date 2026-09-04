@@ -91,7 +91,8 @@ export default function App() {
 
   const [isTeacherModalOpen, setIsTeacherModalOpen] = useState(false);
   const [teacherFormMode, setTeacherFormMode] = useState('add');
-  const [currentTeacherData, setCurrentTeacherData] = useState({ id: '', name: '', specialty: '', department: 'Khoa Kỹ thuật - Công nghệ', phone: '', email: '', degree: 'Thạc sĩ', password: '123' });
+  // Cập nhật State trống cho department và degree
+  const [currentTeacherData, setCurrentTeacherData] = useState({ id: '', name: '', specialty: '', department: '', phone: '', email: '', degree: '', password: '123' });
 
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
   const [classFormMode, setClassFormMode] = useState('add');
@@ -270,7 +271,7 @@ export default function App() {
       setCurrentTeacherData({ ...teacher, password: acc ? acc.password : '123' });
     } else {
       const lastIdNum = teachers.length > 0 ? Math.max(...teachers.map(t => { const num = parseInt(t.id.replace('GV', ''), 10); return isNaN(num) ? 0 : num; })) : 0;
-      setCurrentTeacherData({ id: `GV${String(lastIdNum + 1).padStart(3, '0')}`, name: '', specialty: '', department: 'Khoa Kỹ thuật - Công nghệ', phone: '', email: '', degree: 'Thạc sĩ', password: '123' });
+      setCurrentTeacherData({ id: `GV${String(lastIdNum + 1).padStart(3, '0')}`, name: '', specialty: '', department: '', phone: '', email: '', degree: '', password: '123' });
     }
     setIsTeacherModalOpen(true);
   };
@@ -396,7 +397,7 @@ export default function App() {
       fileName = 'Mau_Nhap_Hoc_Vien.xlsx';
     } else if (type === 'teachers') {
       templateData = [
-        ['Mã GV', 'Họ Tên', 'Trình độ', 'Chuyên môn', 'Khoa', 'Điện thoại', 'Email'],
+        ['Mã GV', 'Họ Tên', 'Trình độ', 'Chuyên môn', 'Phòng/Khoa', 'Điện thoại', 'Email'],
         ['GV001', 'Trần Thị B', 'Thạc sĩ', 'Kỹ thuật phần mềm', 'Khoa Kỹ thuật - Công nghệ', '0912345678', 'ttb@abc.com']
       ];
       fileName = 'Mau_Nhap_Giang_Vien.xlsx';
@@ -469,8 +470,8 @@ export default function App() {
             if (!row[0]) return;
             const id = String(row[0]).trim();
             batch.set(doc(db, 'teachers', id), {
-              id, name: String(row[1] || '').trim(), degree: String(row[2] || 'Thạc sĩ'), specialty: String(row[3] || ''),
-              department: String(row[4] || 'Khoa Kỹ thuật - Công nghệ'), phone: String(row[5] || ''), email: String(row[6] || '')
+              id, name: String(row[1] || '').trim(), degree: String(row[2] || ''), specialty: String(row[3] || ''),
+              department: String(row[4] || ''), phone: String(row[5] || ''), email: String(row[6] || '')
             });
             batch.set(doc(db, 'accounts', id), { username: id, password: '123', name: String(row[1]), role: 'teacher', teacherId: id });
             count++;
@@ -551,7 +552,12 @@ export default function App() {
     }
   };
 
-  // --- Tối ưu hóa render Điểm số bằng Lớp học ---
+  // Logic tự động lấy danh sách Phòng/Khoa độc nhất từ dữ liệu Giảng viên hiện có
+  const uniqueDepartments = useMemo(() => {
+    const depts = teachers.map(t => t.department).filter(Boolean);
+    return [...new Set(depts)];
+  }, [teachers]);
+
   const classesOfSelectedMajorForGrades = useMemo(() => classes.filter(c => c.major === selectedMajorForGrades), [classes, selectedMajorForGrades]);
 
   useEffect(() => {
@@ -709,16 +715,18 @@ export default function App() {
                       <h3 className="text-4xl font-black text-teal-600">{teachers.length}</h3>
                    </div>
                    <div className="space-y-3 text-xs text-slate-600 flex-1">
-                      <p className="font-bold mb-3 text-slate-800 border-b pb-2">Biên chế theo khoa:</p>
-                      {['Khoa Kỹ thuật - Công nghệ', 'Khoa Dịch vụ - Du lịch - Nhà hàng khách sạn', 'Khoa Ngôn ngữ', 'Khoa Cơ bản'].map(dept => {
-                         const count = teachers.filter(t=>t.department === dept).length;
-                         return (
-                           <div key={dept} className="flex justify-between items-center border-b border-slate-50 pb-2 mb-2">
-                             <span className="text-slate-500 leading-tight pr-4">{dept}</span>
-                             <span className="font-bold bg-teal-50 text-teal-700 px-2 py-0.5 rounded">{count}</span>
-                           </div>
-                         );
-                      })}
+                      <p className="font-bold mb-3 text-slate-800 border-b pb-2">Biên chế theo Phòng/Khoa:</p>
+                      <div className="max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                        {uniqueDepartments.length > 0 ? uniqueDepartments.map(dept => {
+                           const count = teachers.filter(t=>t.department === dept).length;
+                           return (
+                             <div key={dept} className="flex justify-between items-center border-b border-slate-50 pb-2 mb-2">
+                               <span className="text-slate-500 leading-tight pr-4">{dept}</span>
+                               <span className="font-bold bg-teal-50 text-teal-700 px-2 py-0.5 rounded">{count}</span>
+                             </div>
+                           );
+                        }) : <span className="text-slate-400">Chưa có dữ liệu</span>}
+                      </div>
                    </div>
                 </div>
 
@@ -800,12 +808,10 @@ export default function App() {
                       <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
                       <input type="text" value={teacherSearch} onChange={(e) => setTeacherSearch(e.target.value)} className="w-56 pl-9 pr-4 py-2 border rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="Tìm giảng viên..." />
                     </div>
+                    {/* BỘ LỌC PHÒNG/KHOA TỰ ĐỘNG LẤY TỪ DỮ LIỆU */}
                     <select value={teacherFilterDept} onChange={(e) => setTeacherFilterDept(e.target.value)} className="border rounded-xl px-3 py-2 text-xs font-bold text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500 max-w-[220px] truncate">
-                      <option value="All">Tất cả khoa</option>
-                      <option value="Khoa Kỹ thuật - Công nghệ">Khoa Kỹ thuật - CN</option>
-                      <option value="Khoa Dịch vụ - Du lịch - Nhà hàng khách sạn">Khoa DV - Du lịch - NHKS</option>
-                      <option value="Khoa Ngôn ngữ">Khoa Ngôn ngữ</option>
-                      <option value="Khoa Cơ bản">Khoa Cơ bản</option>
+                      <option value="All">Tất cả Phòng/Khoa</option>
+                      {uniqueDepartments.map(dept => <option key={dept} value={dept}>{dept}</option>)}
                     </select>
                   </div>
                   <div className="flex space-x-2">
@@ -1162,8 +1168,8 @@ export default function App() {
             <div className="p-6 grid grid-cols-2 gap-4">
               <div><label className="block mb-1 font-bold text-slate-600">Mã GV *</label><input required disabled={teacherFormMode==='edit'} value={currentTeacherData.id} onChange={e=>setCurrentTeacherData({...currentTeacherData, id: e.target.value})} className="w-full p-2 border rounded" /></div>
               <div><label className="block mb-1 font-bold text-slate-600">Họ Tên *</label><input required value={currentTeacherData.name} onChange={e=>setCurrentTeacherData({...currentTeacherData, name: e.target.value})} className="w-full p-2 border rounded" /></div>
-              <div><label className="block mb-1 font-bold text-slate-600">Trình độ *</label><select value={currentTeacherData.degree} onChange={e=>setCurrentTeacherData({...currentTeacherData, degree: e.target.value})} className="w-full p-2 border rounded"><option>Tiến sĩ</option><option>Thạc sĩ</option><option>Cử nhân/Kỹ sư</option><option>Cao đẳng</option><option>Trung cấp</option></select></div>
-              <div><label className="block mb-1 font-bold text-slate-600">Khoa *</label><select value={currentTeacherData.department} onChange={e=>setCurrentTeacherData({...currentTeacherData, department: e.target.value})} className="w-full p-2 border rounded"><option>Khoa Kỹ thuật - Công nghệ</option><option>Khoa Dịch vụ  - Du lịch - Nhà hàng khách sạn</option><option>Khoa Ngôn ngữ</option><option>Khoa Cơ bản</option></select></div>
+              <div><label className="block mb-1 font-bold text-slate-600">Trình độ *</label><input required value={currentTeacherData.degree} onChange={e=>setCurrentTeacherData({...currentTeacherData, degree: e.target.value})} className="w-full p-2 border rounded" placeholder="VD: Tiến sĩ, Thạc sĩ..." /></div>
+              <div><label className="block mb-1 font-bold text-slate-600">Phòng/Khoa *</label><input required value={currentTeacherData.department} onChange={e=>setCurrentTeacherData({...currentTeacherData, department: e.target.value})} className="w-full p-2 border rounded" placeholder="VD: Khoa CNTT, Phòng Đào tạo..." /></div>
               <div><label className="block mb-1 font-bold text-slate-600">Điện thoại</label><input value={currentTeacherData.phone} onChange={e=>setCurrentTeacherData({...currentTeacherData, phone: e.target.value})} className="w-full p-2 border rounded" /></div>
               <div><label className="block mb-1 font-bold text-slate-600">Email</label><input type="email" value={currentTeacherData.email} onChange={e=>setCurrentTeacherData({...currentTeacherData, email: e.target.value})} className="w-full p-2 border rounded" /></div>
               <div><label className="block mb-1 font-bold text-slate-600">Chuyên môn *</label><input required value={currentTeacherData.specialty} onChange={e=>setCurrentTeacherData({...currentTeacherData, specialty: e.target.value})} className="w-full p-2 border rounded" /></div>
