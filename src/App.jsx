@@ -91,7 +91,6 @@ export default function App() {
 
   const [isTeacherModalOpen, setIsTeacherModalOpen] = useState(false);
   const [teacherFormMode, setTeacherFormMode] = useState('add');
-  // Cập nhật State trống cho department và degree
   const [currentTeacherData, setCurrentTeacherData] = useState({ id: '', name: '', specialty: '', department: '', phone: '', email: '', degree: '', password: '123' });
 
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
@@ -552,7 +551,6 @@ export default function App() {
     }
   };
 
-  // Logic tự động lấy danh sách Phòng/Khoa độc nhất từ dữ liệu Giảng viên hiện có
   const uniqueDepartments = useMemo(() => {
     const depts = teachers.map(t => t.department).filter(Boolean);
     return [...new Set(depts)];
@@ -562,7 +560,7 @@ export default function App() {
 
   useEffect(() => {
     if (classesOfSelectedMajorForGrades.length > 0) {
-      setSelectedClassForGrades(classesOfSelectedMajorForGrades[0].name);
+      setSelectedClassForGrades(classesOfSelectedMajorForGrades[0].id);
     } else {
       setSelectedClassForGrades('');
     }
@@ -808,7 +806,6 @@ export default function App() {
                       <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
                       <input type="text" value={teacherSearch} onChange={(e) => setTeacherSearch(e.target.value)} className="w-56 pl-9 pr-4 py-2 border rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="Tìm giảng viên..." />
                     </div>
-                    {/* BỘ LỌC PHÒNG/KHOA TỰ ĐỘNG LẤY TỪ DỮ LIỆU */}
                     <select value={teacherFilterDept} onChange={(e) => setTeacherFilterDept(e.target.value)} className="border rounded-xl px-3 py-2 text-xs font-bold text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500 max-w-[220px] truncate">
                       <option value="All">Tất cả Phòng/Khoa</option>
                       {uniqueDepartments.map(dept => <option key={dept} value={dept}>{dept}</option>)}
@@ -926,7 +923,7 @@ export default function App() {
                          <>
                            <span className="text-xs font-bold text-slate-500 ml-2">Lớp:</span>
                            <select value={selectedClassForGrades} onChange={(e) => setSelectedClassForGrades(e.target.value)} className="bg-slate-50 border text-xs font-bold px-3 py-2 rounded-xl focus:outline-none max-w-[150px] truncate">
-                              {classesOfSelectedMajorForGrades.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                              {classesOfSelectedMajorForGrades.map(c => <option key={c.id} value={c.id}>{c.id}</option>)}
                               <option value="All">-- Tất cả (Tải chậm) --</option>
                            </select>
 
