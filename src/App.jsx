@@ -613,12 +613,11 @@ export default function App() {
       {!isLoggedIn ? (
         <div className="flex-1 flex items-center justify-center bg-slate-100 p-4">
           <form onSubmit={handleLogin} className="w-full max-w-sm bg-white p-8 rounded-3xl shadow-xl">
-            <div className="text-center mb-8"><div className="w-16 h-16 bg-indigo-600 text-white rounded-2xl mx-auto flex items-center justify-center mb-4"><GraduationCap className="w-8 h-8" /></div><h2 className="text-xl font-bold">HIC LMS</h2></div>
+            <div className="text-center mb-8"><div className="w-16 h-16 bg-indigo-600 text-white rounded-2xl mx-auto flex items-center justify-center mb-4"><GraduationCap className="w-8 h-8" /></div><h2 className="text-xl font-bold">PHẦN MỀM QUẢN LÝ ĐÀO TẠO - HIC LMS</h2></div>
             {loginError && <p className="text-xs text-rose-600 bg-rose-50 p-2 rounded mb-4">{loginError}</p>}
             <input required value={loginForm.username} onChange={e => setLoginForm({...loginForm, username: e.target.value})} className="w-full mb-4 px-4 py-3 border rounded-xl" placeholder="Tên đăng nhập" />
             <input type="password" required value={loginForm.password} onChange={e => setLoginForm({...loginForm, password: e.target.value})} className="w-full mb-6 px-4 py-3 border rounded-xl" placeholder="Mật khẩu" />
             <button type="submit" className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold">Đăng nhập</button>
-            <div className="mt-6 text-xs text-slate-500 text-center"><p>Dữ liệu mẫu:</p><p>admin / 123 (Quản trị)</p></div>
           </form>
         </div>
       ) : (
